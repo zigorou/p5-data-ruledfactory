@@ -3,7 +3,9 @@ package Data::RuledFactory::Rule::Tuples;
 use strict;
 use warnings;
 use parent qw(Data::RuledFactory::Rule);
-use Algorithm::Combinatorics qw(tuples);
+use Iterator::Simple qw(iterator imap iflatten);
+use Math::Counting ();
+use Math::Combinatorics;
 
 our $VERSION = '0.01';
 
@@ -13,17 +15,14 @@ sub new {
 
     my $data = delete $args->{data} || [];
     my $k    = delete $args->{k}    || 1;
-    my @tuples = tuples( $data, $k );
 
-    if ($k == 1) {
-        @tuples = map { $_->[0] } @tuples;
-    }
+    my $iterator = $class->_create_iterator($data, $k);
 
     %$args = $class->default_args(
-        k      => $k,
-        tuples => \@tuples,
-        rows   => scalar(@tuples),
         data   => $data,
+        k      => $k,
+        iterator => $iterator,
+        rows => Math::Counting::permutation(scalar @$data, $k),
         %$args,
     );
 
@@ -32,7 +31,33 @@ sub new {
 
 sub _next {
     my $self = shift;
-    return $self->{tuples}[$self->{cursor} - 1];
+    my $p = $self->{iterator}->next;
+    return @$p > 1 ? $p : $p->[0];
+}
+
+sub reset {
+    my $self = shift;
+    $self->SUPER::reset;
+    $self->{iterator} = $self->_create_iterator( $self->{data}, $self->{k} );
+}
+
+sub _create_iterator {
+    my ($proto, $data, $k) = @_;
+
+    my $c = Math::Combinatorics->new( data => $data, count => $k );
+    return iflatten(
+        imap {
+            my $p = Math::Combinatorics->new( data => $_ );
+            iterator {
+                my @p = $p->next_permutation;
+                return @p == $k ? [ @p ] : undef;
+            };
+        }
+        iterator {
+            my @c = $c->next_combination;
+            return @c == $k ? [ @c ] : undef;
+        }
+    );
 }
 
 1;

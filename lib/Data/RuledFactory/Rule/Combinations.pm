@@ -3,7 +3,8 @@ package Data::RuledFactory::Rule::Combinations;
 use strict;
 use warnings;
 use parent qw(Data::RuledFactory::Rule);
-use Algorithm::Combinatorics qw(combinations);
+use Math::Counting ();
+use Math::Combinatorics;
 
 our $VERSION = '0.01';
 
@@ -13,17 +14,14 @@ sub new {
 
     my $data = delete $args->{data} || [];
     my $k    = delete $args->{k} || 1;
-    my @combinations = combinations($data, $k);
 
-    if ($k == 1) {
-        @combinations = map { $_->[0] } @combinations;
-    }
+    my $iterator = Math::Combinatorics->new( data => $data, count => $k );
 
     %$args = $class->default_args(
-        data         => $data,
-        combinations => \@combinations,
-        k            => $k,
-        rows         => scalar(@combinations),
+        data     => $data,
+        iterator => $iterator,
+        k        => $k,
+        rows     => Math::Counting::combination(scalar @$data, $k),
         %$args,
     );
 
@@ -32,7 +30,14 @@ sub new {
 
 sub _next {
     my $self = shift;
-    return $self->{combinations}[$self->{cursor} - 1];
+    my @c = $self->{iterator}->next_combination;
+    return @c > 1 ? \@c : $c[0];
+}
+
+sub reset {
+    my $self = shift;
+    $self->SUPER::reset;
+    $self->{iterator} = Math::Combinatorics->new( data => $self->{data}, count => $self->{k} );
 }
 
 1;

@@ -129,6 +129,13 @@ sub to_array {
     wantarray ? @rs : \@rs;
 }
 
+sub reset {
+    my $self = shift;
+    for (map { $_->[1] } @{$self->{rules}}) {
+        $_->reset;
+    }
+}
+
 sub adjust_rows {
     my $self = shift;
     my $min_rows = min grep { defined } map { $_->[1]->rows } @{$self->{rules}};
@@ -140,21 +147,226 @@ sub adjust_rows {
     }
 }
 
-
 1;
+
 __END__
 
 =head1 NAME
 
-Data::RuledFactory -
+Data::RuledFactory - Create array or hash data given rules.
 
 =head1 SYNOPSIS
 
+  use Data::Dumper;
   use Data::RuledFactory;
+
+  my $rf = Data::RuledFactory->new();
+  $rf->add_rule(
+    id => [
+      Sequence => {
+        min => 0,
+        max => 100,
+        step => 2,
+      },
+    ],
+  );
+  $rf->add_rule(
+    name => [
+      StringRandom => {
+        data => '[A-Za-z]{8,12}',
+      },
+    ],
+  );
+  $rf->rows(5);
+
+  while ($rf->has_next) {
+      warn Dumper($rf->next);
+  }
 
 =head1 DESCRIPTION
 
-Data::RuledFactory is
+=head2 Introduction
+
+Data::RuledFactory is data generator library.
+At first, you should define rules in order to each rule's syntax. For example:
+
+  #!/usr/bin/env perl
+  
+  use strict;
+  use warnings;
+  use FindBin;
+  use lib "$FindBin::Bin/../lib";
+  use DateTime;
+  use Data::RuledFactory;
+  
+  my $rf = Data::RuledFactory->new;
+  
+  $rf->add_rule( id => [ Sequence => { min => 1, max => 100, step => 1 } ] );
+  $rf->add_rule( name => [ ListRandom => { data => [qw/foo bar baz/] } ] );
+  $rf->add_rule(
+      published_on => [
+          RangeRandom => {
+              min => DateTime->new( year => 2011, month => 12, day => 1 )->epoch,
+              max => DateTime->new( year => 2011, month => 12, day => 24 )->epoch,
+              incremental => 1,
+              integer     => 1,
+          }
+      ]
+  );
+  
+  $rf->rows(10);
+  
+  while ($rf->has_next) {
+      my $d = $rf->next;
+      printf(
+          "id: %d, name: %s, published_on: %s\n",
+          $d->{id},
+          $d->{name},
+          $d->{published_on},
+      );
+  }
+
+Above example will output:
+
+  id: 1, name: bar, published_on: 1324164976
+  id: 2, name: foo, published_on: 1324209646
+  id: 3, name: bar, published_on: 1324248870
+  id: 4, name: foo, published_on: 1324334507
+  id: 5, name: baz, published_on: 1324334794
+  id: 6, name: foo, published_on: 1324387979
+  id: 7, name: bar, published_on: 1324409908
+  id: 8, name: baz, published_on: 1324410608
+  id: 9, name: foo, published_on: 1324413150
+  id: 10, name: bar, published_on: 1324438020
+
+You might notice the way to use this module. It is two topics how to write rules and retrieve data.
+In the next section describe the way to write rules.
+
+=head2 Write rule definitions
+
+At first, all supported built-in rule modules are following list.
+
+=over
+
+=item L<Data::RuledFactory::Rule::Callback>
+
+Generate data from given callback.
+
+=item L<Data::RuledFactory::Rule::Combinations>
+
+Generate combination data from given list and size parameters. See L<Algorithm::Combinatorics>'s combinations routine.
+
+=item L<Data::RuledFactory::Rule::Constant>
+
+Generate constant data from given constant value.
+
+=item L<Data::RuledFactory::Rule::ListRandom>
+
+Generate random data from given list.
+
+=item L<Data::RuledFactory::Rule::RangeRandom>
+
+Generate random data from given range.
+
+=item L<Data::RuledFactory::Rule::Sequence>
+
+Generate sequential data from given step and other initial parameters.
+
+=item L<Data::RuledFactory::Rule::StringRandom>
+
+Generate random data from given regex. See L<String::Random>'s random_regex() routine.
+
+=item L<Data::RuledFactory::Rule::Tuples>
+
+Generate tuple data from given list and size parameters. See L<Algorithm::Combinatorics>'s combinations routine.
+
+=back
+
+When you want to define some field, you would use add_rule($fields, $rule[, ignore_adjust_rows]) method.
+The method is ordinary accepted two arguments. First argument '$fields' must be scalar or array reference consist of field names.
+And second argument is rule definition as array reference. The first element is rule module's name, for example 'Sequence'.
+And next element is passing to rule module's constructor.
+
+For example, you want to make single field retrieving sequential value:
+
+  #!/usr/bin/env perl
+  
+  use strict;
+  use warnings;
+  use FindBin;
+  use lib "$FindBin::Bin/../lib";
+  use Data::Dumper;
+  use Data::RuledFactory;
+  
+  my $rf = Data::RuledFactory->new;
+  
+  $rf->add_rule(
+      id => [ Sequence => { min => 1, max => 100, step => 1 } ]
+  );
+  
+  my @rs = $rf->to_array(0, 10);
+  
+  print join(',', map { $_->{id} } @rs);
+
+Above example will output:
+
+  1,2,3,4,5,6,7,8,9,10
+
+Possibly, you might want to make combinations or tuples fields, For example:
+
+  #!/usr/bin/env perl
+  
+  use strict;
+  use warnings;
+  use FindBin;
+  use lib "$FindBin::Bin/../lib";
+  use Data::Dump qw(dump);
+  use Data::RuledFactory;
+  
+  my $rf = Data::RuledFactory->new;
+  
+  $rf->add_rule(
+      [qw/user friend/] => [ Tuples => { data => [ 1 .. 7 ], k => 2 } ]
+  );
+  
+  my $rs = $rf->to_array(0, 10);
+  dump $rs;
+
+Above example will output:
+
+   { friend => 2, user => 1 },
+   { friend => 3, user => 1 },
+   { friend => 4, user => 1 },
+   { friend => 5, user => 1 },
+   { friend => 6, user => 1 },
+   { friend => 7, user => 1 },
+   { friend => 1, user => 2 },
+   { friend => 3, user => 2 },
+   { friend => 4, user => 2 },
+   { friend => 5, user => 2 },
+
+When you want to know detail of usage to each rule modules, you should read each documents.
+The rule module is pluggable, so you can extend and make custom rule. Please see the source code of built-in rule module.
+
+=head2 Retrieving generated data
+
+=head1 METHODS
+
+=head2 new()
+
+=head2 add_rule()
+
+=head2 has_next()
+
+=head2 next()
+
+=head2 to_array()
+
+=head2 reset()
+
+=head2 adjust_rows()
+
+Internal use only.
 
 =head1 AUTHOR
 

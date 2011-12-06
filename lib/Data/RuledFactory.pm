@@ -4,8 +4,9 @@ use strict;
 use warnings;
 use Class::Accessor::Lite (
     new => 0,
-    rw  => [qw/rules/],
+    rw  => [qw/rules columns rows/],
 );
+use Class::Load qw(load_class);
 use List::Util qw(min);
 
 our $VERSION = '0.01';
@@ -42,11 +43,16 @@ sub add_rule {
         $rule_class = index($rule_class, '+') == 0 ? substr($rule_class, 1) : 'Data::RuledFactory::Rule::' . $rule_class;
     }
     elsif ( ref $rule eq 'CODE' ) {
-        ### TODO
-        # ($rule_class, $rule_args);
+        ($rule_class, $rule_args) = (
+            'Data::RuledFactory::Rule::Callback',
+            { data => $rule },
+        );
     }
     else {
-        ### TODO constant
+        ($rule_class, $rule_args) = (
+            'Data::RuledFactory::Rule::Constant',
+            { data => $rule },
+        );
     }
 
     load_class $rule_class;
@@ -59,8 +65,10 @@ sub add_rule {
 
 sub has_next {
     my $self = shift;
-    my $has_next = 1;
 
+    return 0 if (defined $self->{rows} && $self->{cursor} >= $self->{rows});
+
+    my $has_next = 1;
     for my $rule ( map { $_->[1] } @{$self->{rules}} ) {
         unless ($rule->has_next) {
             $has_next = 0;
@@ -78,6 +86,8 @@ sub next {
         return;
     }
 
+    $self->{cursor}++;
+
     my $v = {};
     my $columns = $self->{columns};
     my $defined_columns = defined $columns ? 1 : 0;
@@ -92,17 +102,21 @@ sub next {
 
         return unless ($rule->has_next);
 
+        my $next_val = $rule->next($v);
+
+        return unless defined $next_val;
+
         if (@fields > 1) {
-            @$v{@fields} = @{$rule->next};
+            @$v{@fields} = @{$next_val};
         }
         else {
-            $v->{$fields} = $rule->next;
+            $v->{$fields} = $next_val;
         }
     }
 
     $self->{columns} = $columns;
 
-    my $rv = $as_arrayref ? [ @$v{@$columns} ] : $v;
+    my $rv = $as_arrayref ? [ @$v{@$columns} ] : { map { $_ => $v->{$_} } @$columns };
 
     return $rv;
 }
@@ -111,7 +125,7 @@ sub to_array {
     my ($self, $as_arrayref, $max_rows) = @_;
     $as_arrayref = 0 unless (defined $as_arrayref);
     $max_rows  ||= $self->{rows};
-    my @rs = map { $self->next } (1 .. $max_rows);
+    my @rs = map { $self->next($as_arrayref) } (1 .. $max_rows);
     wantarray ? @rs : \@rs;
 }
 

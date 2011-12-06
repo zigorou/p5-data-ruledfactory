@@ -6,7 +6,7 @@ use Data::RuledFactory::Rule::Callback;
 
 subtest 'default' => sub {
     my $r = Data::RuledFactory::Rule::Callback->new(
-        callback => sub {
+        data => sub {
             my $rule = shift;
             return $rule->cursor * 5;
         },

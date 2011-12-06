@@ -11,7 +11,7 @@ sub new {
     my $args = ref $_[0] ? $_[0] : { @_ };
 
     %$args = (
-        const   => undef,
+        data   => undef,
         rows    => undef,
         cursor  => 0,
         %$args,
@@ -31,7 +31,7 @@ sub has_next {
 }
 
 sub _next {
-    $_[0]->{const};
+    $_[0]->{data};
 }
 
 1;

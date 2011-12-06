@@ -2,19 +2,21 @@ use strict;
 use warnings;
 
 use Test::More;
-use Data::RuledFactory::Rule::Constant;
+use Data::RuledFactory::Rule::Combinations;
 
-subtest 'default' => sub {
-    my $r = Data::RuledFactory::Rule::Constant->new(
-        data => 10,
-        rows => 5,
+subtest 'data: 1..4. k:2' => sub {
+    my $r = Data::RuledFactory::Rule::Combinations->new(
+        data => [1 .. 4],
+        k => 2,
     );
 
     my $i;
 
-    for $i (1..5) {
+    for $i (1..$r->rows) {
         ok $r->has_next, sprintf('has_next() is true (times: %d)', $i);
-        is $r->next, 10, 'next() equals 10';
+        my $got = $r->next;
+        is scalar @$got, 2, sprintf('next() returns 2 items array reference');
+        isnt $got->[0], $got->[1], sprintf('item[0] is not equals item[1]');
     }
 
     $i++;

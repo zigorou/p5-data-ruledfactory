@@ -11,11 +11,13 @@ sub new {
     my $args = ref $_[0] ? $_[0] : { @_ };
 
     %$args = (
-        integer => 0,
-        min     => 0,
-        max     => 100,
-        cursor  => 0,
-        rows    => undef,
+        integer     => 0,
+        min         => 0,
+        max         => 100,
+        cursor      => 0,
+        incremental => 0,
+        previous    => undef,
+        rows        => undef,
         %$args,
     );
 
@@ -33,9 +35,30 @@ sub has_next {
 sub _next {
     my $self = shift;
 
-    my $value = $self->{min} + rand($self->{max} - $self->{min});
+    my $value;
+
+    if ($self->{incremental} == 0) {
+        $value = $self->{min} + rand($self->{max} - $self->{min});
+    }
+    elsif ($self->{incremental} > 0) {
+        $self->{previous} = $self->{min} unless defined $self->{previous};
+        $value = $self->{previous} + rand( ($self->{max} - $self->{previous}) / ($self->{max} - $self->{min}) ) * ($self->{max} - $self->{previous});
+        $self->{previous} = $value;
+    }
+    else {
+        $self->{previous} = $self->{max} unless defined $self->{previous};
+        $value = $self->{previous} + rand( ($self->{min} - $self->{previous} ) / ($self->{min} - $self->{max} ) ) * ($self->{min} - $self->{previous});
+        $self->{previous} = $value;
+    }
+
     $value = int($value) if ($self->{integer});
     $value;
+}
+
+sub reset {
+    my $self = shift;
+    $self->SUPER::reset();
+    $self->{previous} = undef;
 }
 
 1;

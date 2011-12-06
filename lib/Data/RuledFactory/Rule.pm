@@ -25,7 +25,7 @@ sub next {
     $self->{cursor}++;
     my $rv = $self->_next;
 
-    $self->{after_next} ? $self->{after_next}->($rv) : $rv;
+    $self->{after_next} ? $self->{after_next}->($self, $rv) : $rv;
 }
 
 sub reset {

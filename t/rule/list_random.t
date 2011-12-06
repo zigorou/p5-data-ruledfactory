@@ -6,7 +6,7 @@ use Data::RuledFactory::Rule::ListRandom;
 
 subtest 'default' => sub {
     my $r = Data::RuledFactory::Rule::ListRandom->new(
-        list => [qw/foo bar baz/],
+        data => [qw/foo bar baz/],
         rows => 10,
     );
 
@@ -22,6 +22,27 @@ subtest 'default' => sub {
     ok !$r->has_next, sprintf('has_next() is false (times: %d)', $i);
     is $r->next, undef, sprintf('next() is undef (times: %d)', $i);
 };
+
+subtest 'unique' => sub {
+    my $r = Data::RuledFactory::Rule::ListRandom->new(
+        data => [qw/foo bar baz/],
+        rows => 10,
+        unique => 1,
+    );
+
+    my $i;
+
+    for $i (1..3) {
+        ok $r->has_next, sprintf('has_next() is true (times: %d)', $i);
+        like $r->next, qr/^(?:foo|bar|baz)$/, 'next() matches given regex';
+    }
+
+    $i++;
+
+    ok !$r->has_next, sprintf('has_next() is false (times: %d)', $i);
+    is $r->next, undef, sprintf('next() is undef (times: %d)', $i);
+};
+
 
 done_testing;
 

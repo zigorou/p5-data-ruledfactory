@@ -3,22 +3,30 @@ package Data::RuledFactory::Rule::ListRandom;
 use strict;
 use warnings;
 use parent qw(Data::RuledFactory::Rule);
-use Data::WeightedRoundRobin;
 
 our $VERSION = '0.01';
 
 sub new {
     my $class = shift;
-    my $args = ref $_[0] ? $_[0] : { @_ };
+    my $args  = ref $_[0] ? $_[0] : { @_ };
 
     %$args = (
-        list    => [],
+        unique  => 0,
+        data    => [],
         rows    => undef,
         cursor  => 0,
         %$args,
     );
 
-    $args->{list} = Data::WeightedRoundRobin->new($args->{list});
+    if ($args->{unique}) {
+        $args->{data} = [
+            map { $_->[0] }
+            sort { $a->[1] <=> $b->[1] }
+            map { [ $_, rand ] }
+            @{$args->{data}}
+        ];
+        $args->{rows} = scalar(@{$args->{data}});
+    }
 
     bless $args => $class;
 }
@@ -35,7 +43,12 @@ sub has_next {
 
 sub _next {
     my $self = shift;
-    $self->{list}->next;
+    if ($self->{unique}) {
+        return $self->{data}[$self->{cursor} - 1];
+    }
+    else {
+        return $self->{data}[int(rand(scalar(@{$self->{data}})))];
+    }
 }
 
 

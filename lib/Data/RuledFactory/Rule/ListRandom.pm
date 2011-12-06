@@ -2,6 +2,7 @@ package Data::RuledFactory::Rule::ListRandom;
 
 use strict;
 use warnings;
+use parent qw(Data::RuledFactory::Rule);
 use Data::WeightedRoundRobin;
 
 our $VERSION = '0.01';
@@ -12,7 +13,6 @@ sub new {
 
     %$args = (
         list    => [],
-        next_cb => undef,
         rows    => undef,
         cursor  => 0,
         %$args,

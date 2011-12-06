@@ -28,11 +28,10 @@ sub next {
     $self->{after_next} ? $self->{after_next}->($rv) : $rv;
 }
 
-sub apply_cb {
-    my ($self, $callback, @args) = @_;
-    return $self->{$callback} ? $self->{$callback}->(@args) : @args;
+sub reset {
+    my $self = shift;
+    $self->{cursor} = 0;
 }
-
 
 
 1;

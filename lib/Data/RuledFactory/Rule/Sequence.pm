@@ -20,7 +20,6 @@ sub new {
         max        => undef,
         start      => undef,
         step       => 1,
-        after_next => undef,
         rows       => undef,
         cursor     => 0,
         %$args,

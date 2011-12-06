@@ -10,24 +10,9 @@ sub new {
     my $class = shift;
     my $args = ref $_[0] ? $_[0] : { @_ };
 
-    %$args = (
-        data   => undef,
-        rows    => undef,
-        cursor  => 0,
-        %$args,
-    );
+    $class->default_args(%$args);
 
     bless $args => $class;
-}
-
-sub has_next {
-    my $self = shift;
-
-    unless ( defined $self->{rows} ) {
-        return 1;
-    }
-
-    return $self->{cursor} < $self->{rows} ? 1 : 0;
 }
 
 sub _next {

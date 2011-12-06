@@ -15,13 +15,11 @@ sub new {
     my $class = shift;
     my $args = ref $_[0] ? $_[0] : { @_ };
 
-    %$args = (
+    %$args = $class->default_args(
         min        => undef,
         max        => undef,
         start      => undef,
         step       => 1,
-        rows       => undef,
-        cursor     => 0,
         %$args,
     );
 
@@ -42,11 +40,6 @@ sub new {
     }
 
     bless $args => $class;
-}
-
-sub has_next {
-    my $self = shift;
-    return $self->{cursor} < $self->{rows} ? 1 : 0;
 }
 
 sub _next {

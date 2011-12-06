@@ -19,20 +19,15 @@ sub new {
         @tuples = map { $_->[0] } @tuples;
     }
 
-    %$args = (
+    %$args = $class->default_args(
         k      => $k,
         tuples => \@tuples,
         rows   => scalar(@tuples),
-        cursor => 0,
+        data   => $data,
         %$args,
     );
 
     bless $args => $class;
-}
-
-sub has_next {
-    my $self = shift;
-    return $self->{cursor} < $self->{rows} ? 1 : 0;
 }
 
 sub _next {

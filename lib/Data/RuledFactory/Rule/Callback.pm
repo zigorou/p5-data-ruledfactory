@@ -9,14 +9,7 @@ our $VERSION = '0.01';
 sub new {
     my $class = shift;
     my $args = ref $_[0] ? $_[0] : { @_ };
-
-    %$args = (
-        data     => undef,
-        rows     => undef,
-        cursor   => 0,
-        %$args,
-    );
-
+    %$args = $class->default_args(%$args);
     bless $args => $class;
 }
 
@@ -27,11 +20,7 @@ sub has_next {
         return 0;
     }
 
-    unless ( defined $self->{rows} ) {
-        return 1;
-    }
-
-    return $self->{cursor} < $self->{rows} ? 1 : 0;
+    $self->SUPER::has_next();
 }
 
 sub _next {

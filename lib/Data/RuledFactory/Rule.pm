@@ -4,12 +4,33 @@ use strict;
 use warnings;
 use Class::Accessor::Lite (
     new => 0,
-    rw  => [qw/after_next cursor rows prepare_next/],
+    rw  => [qw/after_next cursor rows prepare_next stash/],
 );
 
 our $VERSION = '0.01';
 
-sub has_next { 0 }
+sub default_args {
+    my ($proto, %args) = @_;
+
+    return (
+        after_next   => undef,
+        cursor       => 0,
+        rows         => undef,
+        prepare_next => undef,
+        stash        => {},
+        %args,
+    );
+}
+
+sub has_next {
+    my $self = shift;
+
+    unless ( defined $self->{rows} ) {
+        return 1;
+    }
+
+    return $self->{cursor} < $self->{rows} ? 1 : 0;
+}
 
 sub next {
     my ($self, $v) = @_;

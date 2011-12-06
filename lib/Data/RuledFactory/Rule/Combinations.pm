@@ -19,20 +19,15 @@ sub new {
         @combinations = map { $_->[0] } @combinations;
     }
 
-    %$args = (
+    %$args = $class->default_args(
+        data         => $data,
         combinations => \@combinations,
         k            => $k,
         rows         => scalar(@combinations),
-        cursor       => 0,
         %$args,
     );
 
     bless $args => $class;
-}
-
-sub has_next {
-    my $self = shift;
-    return $self->{cursor} < $self->{rows} ? 1 : 0;
 }
 
 sub _next {

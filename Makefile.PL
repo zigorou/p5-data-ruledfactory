@@ -12,8 +12,9 @@ requires 'Iterator::Simple';
 requires 'List::Util';
 requires 'Math::Combinatorics';
 requires 'Math::Counting';
+requires 'String::Random';
 
-tests 't/*.t';
+tests_recursive 't';
 author_tests 'xt';
 
 test_requires 'Test::More';

@@ -30,6 +30,8 @@ sub new {
         $self->add_rule( $fields, $rule, 1 );
     }
 
+    $self->adjust_rows;
+
     $self;
 }
 

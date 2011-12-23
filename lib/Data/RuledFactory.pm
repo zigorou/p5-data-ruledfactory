@@ -21,10 +21,17 @@ sub new {
         cursor  => 0,
         rows    => undef,
         rules   => [],
+        base_class   => undef,
         %$args,
     );
 
     my $self = bless $args => $class;
+
+    if ( defined $args->{base_class} ) {
+        for my $field ($args->{base_class}->_defined_fields) {
+            push(@{$self->{rules}}, [ $field => $args->{base_class}->$field ]);
+        }
+    }
 
     while ( my ($fields, $rule) = splice(@$rules, 0, 2) ) {
         $self->add_rule( $fields, $rule, 1 );
@@ -35,8 +42,8 @@ sub new {
     $self;
 }
 
-sub add_rule {
-    my ( $self, $fields, $rule, $ignore_adjust_rows ) = @_;
+sub _resolve_rule {
+    my $rule = shift;
 
     my ($rule_class, $rule_args);
 
@@ -56,6 +63,14 @@ sub add_rule {
             { data => $rule },
         );
     }
+
+    return ($rule_class, $rule_args);
+}
+
+sub add_rule {
+    my ( $self, $fields, $rule, $ignore_adjust_rows ) = @_;
+
+    my ($rule_class, $rule_args) = _resolve_rule($rule);
 
     load_class $rule_class;
     push(@{$self->{rules}}, [ $fields => $rule_class->new( $rule_args ) ]);

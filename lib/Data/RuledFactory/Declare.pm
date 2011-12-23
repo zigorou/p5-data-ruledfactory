@@ -9,7 +9,6 @@ our @EXPORT = qw/define/;
 use Class::Load qw(load_class);
 
 use Data::RuledFactory;
-use Data::RuledFactory::Rule;
 
 sub define {
     my ($fields, $rule_class, $rule_args) = @_;

@@ -25,17 +25,17 @@ sub define {
         if ref $fields ne "ARRAY";
 
     my $class = caller();
-    my @defined_fields = $class->can('_defined_fields') ?
+    my $defined_fields = $class->can('_defined_fields') ?
         $class->_defined_fields : ();
 
     no strict 'refs';
     for my $field (@$fields) {
         *{"$class\::$field"} = sub { $rule };
-        push @defined_fields, $field;
+        $defined_fields->{$field} = 1;
     }
 
     no warnings 'redefine';
-    *{"$class\::_defined_fields"} = sub { @defined_fields };
+    *{"$class\::_defined_fields"} = sub { $defined_fields };
 }
 
 
@@ -44,15 +44,42 @@ __END__
 
 =head1 NAME
 
-Data::RuledFactory::Declare -
+Data::RuledFactory::Declare - DSL to predefine rules on .pm files
 
 =head1 SYNOPSIS
 
-  use Data::RuledFactory::Declare;
+    package MyProj::DataFactory::User;
 
-=head1 DESCRIPTION
+    use Data::RuledFactory::Declare;
 
-Data::RuledFactory::Declare is
+    define [qw/id other_id/] => "Sequence", +{ min => 1, max => 100, step => 1 };
+    define name => "StringRandom", +{ data => "[A-Za-z]{8,12}" };
+    define del_flg => 0;
+
+    1;
+
+    package MyProj::DataFactory::User::Deleted;
+
+    use parent qw/MyProj::DataFactory::User/;
+
+    # override parent's rule
+    define del_flg => 1;
+
+    1;
+
+    use strict;
+    use warnings;
+
+    # create Data::RuledFactory instance with predefined rules in MyProj::DataFactory::User
+    my $rf_user = Data::RuledFactory->new(
+        base_class => "MyProj::DataFactory::User",
+    );
+    my $rf_user_deleted = $rf_user->subclass("Deleted");
+
+    while ($rf_user->has_next) {
+        my $d = $rf_user->next;
+        # use $d for something
+    }
 
 =head1 AUTHOR
 

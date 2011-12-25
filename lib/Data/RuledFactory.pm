@@ -6,7 +6,7 @@ use Class::Accessor::Lite (
     new => 0,
     rw  => [qw/rules columns rows/],
 );
-use Class::Load qw(load_class);
+use Class::Load qw(load_class try_load_class);
 use List::Util qw(min);
 
 our $VERSION = '0.01';
@@ -17,18 +17,21 @@ sub new {
     my $rules = delete $args->{rules} || [];
 
     %$args = (
-        columns => undef,
-        cursor  => 0,
-        rows    => undef,
-        rules   => [],
-        base_class   => undef,
+        columns    => undef,
+        cursor     => 0,
+        rows       => undef,
+        rules      => [],
+        base_class => undef,
         %$args,
     );
 
     my $self = bless $args => $class;
 
-    if ( defined $args->{base_class} ) {
-        for my $field ($args->{base_class}->_defined_fields) {
+    if ( defined $args->{base_class} &&
+         try_load_class($args->{base_class}) &&
+         $args->{base_class}->can('_defined_fields')
+    ) {
+        for my $field (keys %{ $args->{base_class}->_defined_fields }) {
             push(@{$self->{rules}}, [ $field => $args->{base_class}->$field ]);
         }
     }
@@ -161,6 +164,14 @@ sub adjust_rows {
     }
     else {
         $self->{rows} = min( $self->{rows}, $min_rows );
+    }
+}
+
+sub child_rule {
+    my ($self, $child_name, $args) = @_;
+    if ( defined $self->{base_class} ) {
+        my $child_class = $self->{base_class} . "::" . $child_name;
+        __PACKAGE__->new(%$args, base_class => $child_class);
     }
 }
 

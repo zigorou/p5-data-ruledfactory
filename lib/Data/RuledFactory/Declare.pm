@@ -26,7 +26,7 @@ sub define {
 
     my $class = caller();
     my $defined_fields = $class->can('_defined_fields') ?
-        $class->_defined_fields : ();
+        $class->_defined_fields : +{};
 
     no strict 'refs';
     for my $field (@$fields) {

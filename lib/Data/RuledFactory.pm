@@ -6,8 +6,9 @@ use Class::Accessor::Lite (
     new => 0,
     rw  => [qw/rules columns rows/],
 );
-use Class::Load qw(load_class try_load_class);
-use List::Util qw(min);
+use Class::Load qw(load_class);
+use List::MoreUtils qw(first_index);
+use List::Util qw(first min);
 
 our $VERSION = '0.01';
 
@@ -21,23 +22,13 @@ sub new {
         cursor     => 0,
         rows       => undef,
         rules      => [],
-        base_class => undef,
         %$args,
     );
 
     my $self = bless $args => $class;
 
-    if ( defined $args->{base_class} &&
-         try_load_class($args->{base_class}) &&
-         $args->{base_class}->can('_defined_fields')
-    ) {
-        for my $field (keys %{ $args->{base_class}->_defined_fields }) {
-            push(@{$self->{rules}}, [ $field => $args->{base_class}->$field ]);
-        }
-    }
-
     while ( my ($fields, $rule) = splice(@$rules, 0, 2) ) {
-        $self->add_rule( $fields, $rule, 1 );
+        $self->_add_rule( $fields, $rule );
     }
 
     $self->adjust_rows;
@@ -45,42 +36,106 @@ sub new {
     $self;
 }
 
-sub _resolve_rule {
-    my $rule = shift;
+sub create_rule {
+    my $proto = shift;
+
+    return $_[0] if ( UNIVERSAL::isa($_[0], 'Data::RuledFactory::Rule' ) );
 
     my ($rule_class, $rule_args);
 
-    if ( ref $rule eq 'ARRAY' ) {
-        ($rule_class, $rule_args) = @$rule;
+    if ( ref $_[0] eq 'ARRAY' || @_ == 2 ) {
+        ($rule_class, $rule_args) = ref $_[0] ? @{$_[0]} : @_;
         $rule_class = index($rule_class, '+') == 0 ? substr($rule_class, 1) : 'Data::RuledFactory::Rule::' . $rule_class;
     }
-    elsif ( ref $rule eq 'CODE' ) {
+    elsif ( ref $_[0] eq 'CODE' ) {
         ($rule_class, $rule_args) = (
             'Data::RuledFactory::Rule::Callback',
-            { data => $rule },
+            { data => $_[0] },
         );
     }
     else {
         ($rule_class, $rule_args) = (
             'Data::RuledFactory::Rule::Constant',
-            { data => $rule },
+            { data => $_[0] },
         );
     }
+    
+    load_class $rule_class;
 
-    return ($rule_class, $rule_args);
+    return $rule_class->new( $rule_args );
 }
 
 sub add_rule {
-    my ( $self, $fields, $rule, $ignore_adjust_rows ) = @_;
+    my $self   = shift;
+    my $fields = shift;
 
-    my ($rule_class, $rule_args) = _resolve_rule($rule);
+    $self->_add_rule($fields, @_);
+    $self->adjust_rows;
 
-    load_class $rule_class;
-    push(@{$self->{rules}}, [ $fields => $rule_class->new( $rule_args ) ]);
+    1;
+}
 
-    unless ($ignore_adjust_rows) {
-        $self->adjust_rows;
+sub _add_rule {
+    my ($self, $fields, @rule_args) = @_;
+    my $rule = $self->create_rule(@rule_args);
+    push(@{$self->{rules}}, [ $fields => $rule ]);
+    1;
+}
+
+sub get_rule {
+    my ( $self, $fields ) = @_;
+
+    my $rule_pair;
+    if (ref $fields eq 'ARRAY') {
+        $rule_pair = 
+            first { join('_', @{$_->[0]}) eq join('_', @$fields) } 
+            grep { ref $_->[0] }
+            @{$self->{rules}};
     }
+    else {
+        $rule_pair = 
+            first { $_->[0] eq $fields }
+            grep { !ref $_->[0] }
+            @{$self->{rules}};
+    }
+
+    return $rule_pair ? $rule_pair->[1] : undef;
+}
+
+sub get_rule_index {
+    my ( $self, $fields ) = @_;
+
+    my $idx;
+    if (ref $fields eq 'ARRAY') {
+        $idx = 
+            first_index { ref $_->[0] && join('_', @{$_->[0]}) eq join('_', @$fields) } 
+            @{$self->{rules}};
+    }
+    else {
+        $idx = 
+            first_index { !ref $_->[0] && $_->[0] eq $fields }
+            @{$self->{rules}};
+    }
+
+    return $idx;
+}
+
+sub set_rule {
+    my ($self, $fields, @rule_args) = @_;
+
+    my $idx = $self->get_rule_index($fields);
+    if ($idx == -1) {
+        return $self->add_rule($fields, @rule_args);
+    }
+
+    $self->{rules}[$idx][1] = $self->create_rule(@rule_args);
+
+    return 1;
+}
+
+sub is_exists_rule {
+    my ( $self, $fields ) = @_;
+    $self->get_rule_index($fields) >= 0 ? 1 : 0;
 }
 
 sub has_next {
@@ -159,19 +214,14 @@ sub reset {
 sub adjust_rows {
     my $self = shift;
     my $min_rows = min grep { defined } map { $_->[1]->rows } @{$self->{rules}};
+
+    return unless (defined $min_rows);
+
     unless (defined $self->{rows}) {
         $self->{rows} = $min_rows;
     }
     else {
         $self->{rows} = min( $self->{rows}, $min_rows );
-    }
-}
-
-sub child_rule {
-    my ($self, $child_name, $args) = @_;
-    if ( defined $self->{base_class} ) {
-        my $child_class = $self->{base_class} . "::" . $child_name;
-        __PACKAGE__->new(%$args, base_class => $child_class);
     }
 }
 

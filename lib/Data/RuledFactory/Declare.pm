@@ -3,43 +3,99 @@ package Data::RuledFactory::Declare;
 use strict;
 use warnings;
 
-use parent qw/Exporter/;
-our @EXPORT = qw/define/;
-
-use Class::Load qw(load_class);
-
+use Carp;
 use Data::RuledFactory;
 
-sub define {
-    my ($fields, $rule_class, $rule_args) = @_;
-
-    my $r = ($rule_class && $rule_args) ?
-        [$rule_class, $rule_args] : $rule_class;
-
-    ($rule_class, $rule_args) = Data::RuledFactory::_resolve_rule($r);
-
-    load_class $rule_class;
-    my $rule = $rule_class->new($rule_args);
-
-    $fields = [$fields]
-        if ref $fields ne "ARRAY";
-
-    my $class = caller();
-    my $defined_fields = $class->can('_defined_fields') ?
-        $class->_defined_fields : +{};
+sub import {
+    my $class = shift;
+    my $package = scalar caller;
 
     no strict 'refs';
-    for my $field (@$fields) {
-        *{"$class\::$field"} = sub { $rule };
-        $defined_fields->{$field} = 1;
-    }
-
     no warnings 'redefine';
-    *{"$class\::_defined_fields"} = sub { $defined_fields };
+
+    *{"$package\::__FACTORY__"} = {};
+    *{"$package\::build"}       = \&build;
+    *{"$package\::factory"}     = \&factory;
+    *{"$package\::name"}        = sub { goto &name; };
+    *{"$package\::parent"}      = sub { goto &parent; };
+    *{"$package\::define"}      = sub { goto &define; };
 }
 
+sub build {
+    my ($class, $name) = @_;
+
+    no strict 'refs';
+    unless ( exists *{"$class\::__FACTORY__"}->{$name} ) {
+        croak sprintf('Specified factory name (%s) is not exists', $name);
+    }
+
+    my $opts = *{"$class\::__FACTORY__"}->{$name};
+
+    Data::RuledFactory->new(
+        rules => $opts->{rules},
+    );
+}
+
+sub factory(&;@) {
+    my $cb = shift;
+    my $package = scalar caller;
+
+    no strict 'refs';
+    no warnings 'redefine';
+
+    my %opts = (
+        name    => undef,
+        parent  => undef,
+        rules   => [],
+    );
+
+    local *name   = sub {
+        my $name = shift;
+        $opts{name} = $name;
+    };
+
+    local *parent = sub {
+        my $parent = shift;
+        $opts{parent} = $parent;
+    };
+
+    local *define = sub {
+        my $fields = shift;
+        $fields = [ $fields ] unless ( ref $fields eq 'ARRAY' );
+        my $rule_args = @_ > 1 ? [ @_ ] : $_[0];
+        my $rule = Data::RuledFactory->create_rule($rule_args);
+        push(@{$opts{rules}}, $fields, $rule);
+    };
+
+    $cb->();
+
+    unless (defined $opts{name}) {
+        croak 'The name() is mandatory';
+    }
+
+    if (defined $opts{parent} && !exists *{"$package\::__FACTORY__"}->{$opts{parent}}) {
+        croak sprintf('Specified parent factory(%s) is not exists', $opts{parent});
+    }
+
+    *{"$package\::__FACTORY__"}->{$opts{name}} = \%opts;
+
+    return 1;
+}
+
+### Inspired from Web::Scraper, miyagawa++
+sub __stub {
+    my $func = shift;
+    return sub {
+        croak "Can't call $func() outside factory block";
+    };
+}
+
+*name   = __stub 'name';
+*parent = __stub 'parent';
+*define = __stub 'define';
 
 1;
+
 __END__
 
 =head1 NAME

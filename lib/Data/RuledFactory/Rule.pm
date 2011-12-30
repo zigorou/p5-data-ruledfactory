@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Class::Accessor::Lite (
     new => 0,
-    rw  => [qw/after_next cursor rows prepare_next stash/],
+    rw  => [qw/after_next cursor rows prepare_next stash data/],
 );
 
 our $VERSION = '0.01';
@@ -15,6 +15,7 @@ sub default_args {
     return (
         after_next   => undef,
         cursor       => 0,
+        data         => undef,
         rows         => undef,
         prepare_next => undef,
         stash        => {},

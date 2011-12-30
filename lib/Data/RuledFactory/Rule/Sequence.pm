@@ -8,6 +8,10 @@ use constant {
 };
 use parent qw(Data::RuledFactory::Rule);
 use Carp;
+use Class::Accessor::Lite (
+    new => 0,
+    rw  => [qw/min max start step/],
+);
 
 our $VERSION = '0.01';
 

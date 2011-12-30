@@ -25,15 +25,30 @@ sub build {
     my ($class, $name) = @_;
 
     no strict 'refs';
-    unless ( exists *{"$class\::__FACTORY__"}->{$name} ) {
+    unless ( exists ${"$class\::__FACTORY__"}{$name} ) {
         croak sprintf('Specified factory name (%s) is not exists', $name);
     }
 
-    my $opts = *{"$class\::__FACTORY__"}->{$name};
+    my $opts = ${"$class\::__FACTORY__"}{$name};
 
-    Data::RuledFactory->new(
-        rules => $opts->{rules},
+    my $rf = Data::RuledFactory->new(
+        rules => [ @{$opts->{rules}} ],
     );
+
+    my $parent = $opts->{parent};
+
+    while (defined $parent && exists ${"$class\::__FACTORY__"}{$parent}) {
+        my $parent_opts = ${"$class\::__FACTORY__"}{$parent};
+
+        my @parent_rules = @{$parent_opts->{rules}};
+        while ( my ($fields, $rule) = splice(@parent_rules, 0, 2) ) {
+            next if ($rf->is_exists_rule($fields));
+            $rf->set_rule($fields, $rule);
+        }
+        $parent = $parent_opts->{parent};
+    }
+
+    return $rf;
 }
 
 sub factory(&;@) {
@@ -61,7 +76,6 @@ sub factory(&;@) {
 
     local *define = sub {
         my $fields = shift;
-        $fields = [ $fields ] unless ( ref $fields eq 'ARRAY' );
         my $rule_args = @_ > 1 ? [ @_ ] : $_[0];
         my $rule = Data::RuledFactory->create_rule($rule_args);
         push(@{$opts{rules}}, $fields, $rule);
@@ -77,7 +91,7 @@ sub factory(&;@) {
         croak sprintf('Specified parent factory(%s) is not exists', $opts{parent});
     }
 
-    *{"$package\::__FACTORY__"}->{$opts{name}} = \%opts;
+    ${"$package\::__FACTORY__"}{$opts{name}} = \%opts;
 
     return 1;
 }

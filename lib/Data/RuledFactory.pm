@@ -59,7 +59,7 @@ sub create_rule {
             { data => $_[0] },
         );
     }
-    
+
     load_class $rule_class;
 
     return $rule_class->new( $rule_args );

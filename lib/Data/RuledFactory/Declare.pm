@@ -18,7 +18,7 @@ sub import {
     *{"$package\::factory"}     = \&factory;
     *{"$package\::name"}        = sub { goto &name; };
     *{"$package\::parent"}      = sub { goto &parent; };
-    *{"$package\::define"}      = sub { goto &define; };
+    *{"$package\::rule"}        = sub { goto &rule; };
 }
 
 sub build {
@@ -74,7 +74,7 @@ sub factory(&;@) {
         $opts{parent} = $parent;
     };
 
-    local *define = sub {
+    local *rule = sub {
         my $fields = shift;
         my $rule_args = @_ > 1 ? [ @_ ] : $_[0];
         my $rule = Data::RuledFactory->create_rule($rule_args);
@@ -106,7 +106,7 @@ sub __stub {
 
 *name   = __stub 'name';
 *parent = __stub 'parent';
-*define = __stub 'define';
+*rule   = __stub 'rule';
 
 1;
 
@@ -122,9 +122,9 @@ Data::RuledFactory::Declare - DSL to predefine rules on .pm files
 
     use Data::RuledFactory::Declare;
 
-    define [qw/id other_id/] => "Sequence", +{ min => 1, max => 100, step => 1 };
-    define name => "StringRandom", +{ data => "[A-Za-z]{8,12}" };
-    define del_flg => 0;
+    rule [qw/id other_id/] => "Sequence", +{ min => 1, max => 100, step => 1 };
+    rule name => "StringRandom", +{ data => "[A-Za-z]{8,12}" };
+    rule del_flg => 0;
 
     1;
 
@@ -133,7 +133,7 @@ Data::RuledFactory::Declare - DSL to predefine rules on .pm files
     use parent qw/MyProj::DataFactory::User/;
 
     # override parent's rule
-    define del_flg => 1;
+    rule del_flg => 1;
 
     1;
 

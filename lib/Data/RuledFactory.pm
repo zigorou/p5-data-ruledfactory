@@ -322,43 +322,7 @@ In the next section describe the way to write rules.
 
 =head2 Write rule definitions
 
-At first, all supported built-in rule modules are following list.
-
-=over
-
-=item L<Data::RuledFactory::Rule::Callback>
-
-Generate data from given callback.
-
-=item L<Data::RuledFactory::Rule::Combinations>
-
-Generate combination data from given list and size parameters. See L<Algorithm::Combinatorics>'s combinations routine.
-
-=item L<Data::RuledFactory::Rule::Constant>
-
-Generate constant data from given constant value.
-
-=item L<Data::RuledFactory::Rule::ListRandom>
-
-Generate random data from given list.
-
-=item L<Data::RuledFactory::Rule::RangeRandom>
-
-Generate random data from given range.
-
-=item L<Data::RuledFactory::Rule::Sequence>
-
-Generate sequential data from given step and other initial parameters.
-
-=item L<Data::RuledFactory::Rule::StringRandom>
-
-Generate random data from given regex. See L<String::Random>'s random_regex() routine.
-
-=item L<Data::RuledFactory::Rule::Tuples>
-
-Generate tuple data from given list and size parameters. See L<Algorithm::Combinatorics>'s combinations routine.
-
-=back
+At first, all supported built-in rule modules are following list. (L<SEE ALSO>)
 
 When you want to define some field, you would use add_rule($fields, $rule[, ignore_adjust_rows]) method.
 The method is ordinary accepted two arguments. First argument '$fields' must be scalar or array reference consist of field names.
@@ -501,6 +465,46 @@ Internal use only.
 Toru Yamaguchi E<lt>zigorou@cpan.orgE<gt>
 
 =head1 SEE ALSO
+
+=over
+
+=item L<Data::RuledFactory::Declare>
+
+Write rules using DSL.
+
+=item L<Data::RuledFactory::Rule::Callback>
+
+Generate data from given callback.
+
+=item L<Data::RuledFactory::Rule::Combinations>
+
+Generate combination data from given list and size parameters. See L<Algorithm::Combinatorics>'s combinations routine.
+
+=item L<Data::RuledFactory::Rule::Constant>
+
+Generate constant data from given constant value.
+
+=item L<Data::RuledFactory::Rule::ListRandom>
+
+Generate random data from given list.
+
+=item L<Data::RuledFactory::Rule::RangeRandom>
+
+Generate random data from given range.
+
+=item L<Data::RuledFactory::Rule::Sequence>
+
+Generate sequential data from given step and other initial parameters.
+
+=item L<Data::RuledFactory::Rule::StringRandom>
+
+Generate random data from given regex. See L<String::Random>'s random_regex() routine.
+
+=item L<Data::RuledFactory::Rule::Tuples>
+
+Generate tuple data from given list and size parameters. See L<Algorithm::Combinatorics>'s combinations routine.
+
+=back
 
 =head1 LICENSE
 

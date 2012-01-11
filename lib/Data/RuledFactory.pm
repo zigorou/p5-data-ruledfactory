@@ -430,17 +430,67 @@ The rule module is pluggable, so you can extend and make custom rule. Please see
 
 =head1 METHODS
 
-=head2 new()
+=head2 new(%args)
 
-=head2 add_rule()
+Create new instance. %args details is following:
+
+=over
+
+=item columns
+
+This value is optional and must be ARRAYREF. 
+This value is used as fields order when next() method with $as_arrayref argument equals true value.
+
+=item rules
+
+This value is optional adn must be ARRAYREF.
+Each element of rules must be same format to add_rule() argument. See L<add_rule()>.
+
+=back
+
+=head2 add_rule($fields, \@definition)
+
+The first argument $fields must be SCALAR or ARRAYREF. When you want to define single field, you must specify field name as SCALAR.
+Or when you want to define multiple fields definition, you should specify field names as ARRAYREF.
+
+Second argument \@definition is ARRAYREF consist of rule module name and arguments for it.
+
+=head2 get_rule($fields)
+
+Return rule object specified by $fields. The $fields argument must be SCALAR (for single field) or ARRAYREF (for multiple fields).
+
+=head2 get_rule_index($fields)
+
+Return rule index specified by $fields. The $fields argument must be SCALAR (for single field) or ARRAYREF (for multiple fields).
+
+=head2 set_rule($fields, \@definition)
+
+Add or override rule of the fields. See L<add_rule($fields, \@definition)>.
+
+=head2 is_exists_rule($fields)
+
+Return boolean value which the rule of the fields is exists or not.
 
 =head2 has_next()
 
-=head2 next()
+Return boolean value which the iterator has next data or not.
 
-=head2 to_array()
+=head2 next([$as_arrayref])
+
+Return next random data when iterator has next data.
+The $as_arrayref argument is optional. Its default value is false.
+When $as_arrayref equals false, each data will be HASHREF, 
+and $as_arrayref equals false, each data will be ARRAYREF.
+
+=head2 to_array([$as_arrayref, $max_rows])
+
+Return list of data.
+The $as_arrayref argument same as next()'s argument.
+The $max_rows argument effects return list elements.
 
 =head2 reset()
+
+Initalize all rules.
 
 =head2 adjust_rows()
 

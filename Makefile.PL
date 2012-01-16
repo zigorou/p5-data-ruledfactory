@@ -12,6 +12,7 @@ requires 'Iterator::Simple';
 requires 'List::Util';
 requires 'Math::Combinatorics';
 requires 'Math::Counting';
+requires 'Set::CrossProduct';
 requires 'String::Random';
 
 tests_recursive 't';

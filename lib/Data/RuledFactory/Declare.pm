@@ -122,38 +122,38 @@ Data::RuledFactory::Declare - DSL to predefine rules on .pm files
 
     use Data::RuledFactory::Declare;
 
-    rule [qw/id other_id/] => "Sequence", +{ min => 1, max => 100, step => 1 };
-    rule name => "StringRandom", +{ data => "[A-Za-z]{8,12}" };
-    rule del_flg => 0;
+    factory {
+        name 'Default';
+        rule [qw/id other_id/] => (Sequence => +{ min => 1, max => 100, step => 1 });
+        rule name => (StringRandom => +{ data => "[A-Za-z]{8,12}" };
+        rule del_flg => 0;
+        rule cb => sub { "callback" };
+    };
+
+    factory {
+        name 'Deleted';
+        parent 'Default';
+        rule del_flg => 1; # override parent's rule
+    };
 
     1;
 
-    package MyProj::DataFactory::User::Deleted;
-
-    use parent qw/MyProj::DataFactory::User/;
-
-    # override parent's rule
-    rule del_flg => 1;
-
-    1;
-
-    use strict;
-    use warnings;
+    use MyProj::DataFactory::User;
 
     # create Data::RuledFactory instance with predefined rules in MyProj::DataFactory::User
-    my $rf_user = Data::RuledFactory->new(
-        base_class => "MyProj::DataFactory::User",
-    );
-    my $rf_user_deleted = $rf_user->subclass("Deleted");
 
-    while ($rf_user->has_next) {
-        my $d = $rf_user->next;
-        # use $d for something
-    }
+    my $rf_user = MyProj::DataFactory::User->build('Default');
+
+    my $user = $rf_user->next;
+    # do whatever you want with $user
+
+    my $rf_user_deleted = MyProj::DataFactory::User->build('Deleted');
+    my $deleted_user = $rf_user_deleted->next; # got user with del_flg => 1
+
 
 =head1 AUTHOR
 
-Naosuke Yokoe E<lt>zentoooo@cpan.orgE<gt>
+Toru Yamaguchi E<lt>zigorou@cpan.orgE<gt>
 
 =head1 SEE ALSO
 
